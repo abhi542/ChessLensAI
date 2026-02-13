@@ -4,10 +4,15 @@ A powerful tool that converts handwritten chess scoresheets into digital PGN fil
 
 ## Key Features
 
-- **AI-Powered OCR**: Uses Groq (Llama Vision) to extract moves from handwritten scoresheets.
-- **Interactive Web Interface**: A modern UI to review and edit extracted moves.
-- **Real-time Validation**: Validates moves against legal chess rules as you edit.
-- **Visual Feedback**: Shows the board state for every move; highlights illegal moves and lets you see the board position *before* the error occurred.
+- **Web Interface**: Review and correct the OCR results in a friendly grid UI.
+- **Interactive Board**: Drag and drop pieces to make moves, automatically updating the grid and PGN.
+- **Navigation**: Flip board, step through moves with icons or keyboard arrows.
+- **PGN Upload**: Load existing PGN files to visualize and verify games.
+- **Custom Themes**: Uses "Neo" style chess pieces for a modern look.
+- **Full Metadata**: Supports Event, Site, Date, Round, and Result fields.
+- **Validation**:
+    - Validates moves against legal chess rules using `python-chess`.
+    - Highlights illegal moves and maintains game state up to the error. every move; highlights illegal moves and lets you see the board position *before* the error occurred.
 - **PGN Export**: Allows downloading the game as a `.pgn` file once the game record is fully valid.
 
 ## Project Structure

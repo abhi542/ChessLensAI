@@ -1,4 +1,3 @@
-
 // -- Constants --
 const API_BASE = "http://localhost:8000"; // Assuming local dev
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -13,20 +12,25 @@ let gameState = {
 };
 
 let board = null;
+let game = new Chess(); // Local chess.js instance for move validation/generation
 
 // -- Initialization --
 $(document).ready(() => {
     // Initialize Chessboard
     board = Chessboard('board', {
         position: 'start',
-        // Use local Neo pieces
-        pieceTheme: 'pieces/neo/{piece}.png'
+        pieceTheme: 'pieces/neo/{piece}.png',
+        draggable: true,
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd
     });
 
     // Event Listeners
     $('#imageInput').on('change', handleImageUpload);
     $('#pgnInput').on('change', handlePgnUpload);
     $('#exportBtn').on('click', handleExport);
+    $('#btnFlip').on('click', () => board.flip());
 
     // Trigger validation when metadata changes
     $('#whitePlayer, #blackPlayer, #eventName, #siteName, #gameDate, #roundNum, #gameResult').on('change', validateMoves);
@@ -35,14 +39,16 @@ $(document).ready(() => {
     $('#btnStart').on('click', () => goToMove(-1));
     $('#btnPrev').on('click', () => goToMove(gameState.currentMoveIndex - 1));
     $('#btnNext').on('click', () => goToMove(gameState.currentMoveIndex + 1));
-    $('#btnEnd').on('click', () => goToMove(gameState.fens.length - 2)); // -2 because fens has start position
+    $('#btnEnd').on('click', () => goToMove(gameState.fens.length - 2));
 
-    // Global Key Listener for navigation
+    // Global Key Listener
     $(document).on('keydown', (e) => {
         if (e.key === "ArrowLeft") $('#btnPrev').click();
         if (e.key === "ArrowRight") $('#btnNext').click();
+        if (e.key === "f") board.flip(); // Optional hotkey
     });
 });
+
 
 // -- Handlers --
 
@@ -242,6 +248,7 @@ function updateBoardStatus() {
     const fen = gameState.fens[fenIndex];
     if (fen) {
         board.position(fen);
+        game.load(fen);
     }
 
     // Update active highlight in grid
@@ -371,5 +378,73 @@ async function handlePgnUpload(e) {
         $('#loadingModal').addClass('hidden');
         // Clear input so same file can be uploaded again if needed
         $('#pgnInput').val('');
+    }
+}
+
+// -- Drag & Drop Logic --
+
+function onDragStart(source, piece, position, orientation) {
+    if (game.game_over()) return false;
+    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false;
+    }
+}
+
+function onDrop(source, target) {
+    const move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q'
+    });
+
+    if (move === null) return 'snapback';
+
+    updateUIWithMove(move.san);
+}
+
+function onSnapEnd() {
+    board.position(game.fen());
+}
+
+function updateUIWithMove(san) {
+    const nextHalfMove = gameState.currentMoveIndex + 1;
+    const rowIdx = Math.floor(nextHalfMove / 2);
+    const isWhite = (nextHalfMove % 2) === 0;
+
+    ensureRowExists(rowIdx);
+
+    const row = $(`.move-row[data-idx="${rowIdx}"]`);
+    const cell = isWhite ? row.find('.move-white input') : row.find('.move-black input');
+
+    cell.val(san);
+    validateMoves();
+}
+
+function ensureRowExists(rowIdx) {
+    let row = $(`.move-row[data-idx="${rowIdx}"]`);
+    if (row.length === 0) {
+        const html = `
+        <div class="grid grid-cols-[3rem_1fr_1fr] border-b border-gray-700 move-row" data-idx="${rowIdx}">
+            <div class="py-2 text-center text-gray-500 font-mono text-sm move-num">${rowIdx + 1}.</div>
+            
+            <div class="move-cell move-white p-1">
+                <input type="text" value="" 
+                    class="move-input w-full h-full bg-transparent text-center focus:outline-none text-gray-200"
+                    onchange="validateMoves()"
+                    onfocus="highlightMove(${rowIdx}, 'white')">
+            </div>
+            
+            <div class="move-cell move-black p-1 border-l border-gray-700">
+                <input type="text" value="" 
+                    class="move-input w-full h-full bg-transparent text-center focus:outline-none text-gray-200"
+                    onchange="validateMoves()"
+                    onfocus="highlightMove(${rowIdx}, 'black')">
+            </div>
+        </div>
+        `;
+        $('#movesGrid').append(html);
+        const container = document.getElementById('movesGrid');
+        container.scrollTop = container.scrollHeight;
     }
 }
