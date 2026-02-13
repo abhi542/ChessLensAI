@@ -72,6 +72,20 @@ GROQ_API_KEY=gsk_...your_key_here...
     - Correct the text (e.g., change `Nf5` to `Ng5`).
 4.  **Export**: Once all moves are green (valid), the "Export PGN" button will enable. Click it to save your game.
 
+## Observability (LangSmith)
+
+This project is instrumented with LangSmith for full observability of LLM interactions.
+
+1.  **Tracing**: Every extraction request is traced end-to-end.
+2.  **Metrics**: View token usage (Input/Output), latency, and errors for the `ChatGroq` model.
+3.  **Setup**: Configuration is automatic via `.env`:
+    ```bash
+    LANGCHAIN_TRACING_V2=true
+    LANGCHAIN_API_KEY=...
+    ```
+    No manual wrappers (like `wrap_openai`) are needed; the `ChatGroq` integration handles tracing natively.
+    Visit your [LangSmith Dashboard](https://smith.langchain.com) to see the "ChessSheetOCR" project.
+
 ## Tech Stack
 
 - **Backend**: Python, FastAPI, python-chess, LangChain (Groq)

@@ -16,16 +16,23 @@ import base64
 import json
 import re
 import sys
+import os
 from datetime import date
 from pathlib import Path
+
+# Load environment variables first
+from dotenv import load_dotenv
+load_dotenv(override=True)
 
 import chess
 import chess.pgn
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
+from langsmith import traceable
 
-load_dotenv()
+load_dotenv(override=True)
+
 
 # ── Config ────────────────────────────────────────────────────────────────────
 MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
@@ -94,6 +101,7 @@ def create_llm() -> ChatGroq:
 
 # ── Extraction (Single LLM Call) ─────────────────────────────────────────────
 
+@traceable
 def extract_moves(image_path: str) -> list[dict]:
     """
     Send the scoresheet image to the LLM once and extract all moves.
@@ -103,7 +111,7 @@ def extract_moves(image_path: str) -> list[dict]:
     media_type = get_image_media_type(image_path)
     
     # Configure LLM for structured output
-    llm = create_llm().with_structured_output(Scoresheet)
+    llm = create_llm().with_structured_output(Scoresheet).with_config({"run_name": "extract_moves"})
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),

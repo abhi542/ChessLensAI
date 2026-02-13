@@ -409,6 +409,8 @@ function onSnapEnd() {
 
 function updateUIWithMove(san) {
     const nextHalfMove = gameState.currentMoveIndex + 1;
+    gameState.currentMoveIndex = nextHalfMove; // Update index immediately to prevent snapback
+
     const rowIdx = Math.floor(nextHalfMove / 2);
     const isWhite = (nextHalfMove % 2) === 0;
 
