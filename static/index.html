@@ -24,7 +24,7 @@
     <!-- Header -->
     <header class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-lg z-10">
         <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            Chess Sheet OCR
+            ChessLensAI
         </h1>
         <div class="flex gap-4 items-center">
             <input type="file" id="imageInput" accept="image/*" class="hidden">
@@ -109,31 +109,61 @@
                     Upload an image to start extracting moves.
                 </div>
             </div>
-
-            <!-- Status Bar -->
-            <div id="statusBar" class="p-2 bg-gray-800 border-t border-gray-700 text-xs text-center text-gray-400">
-                Ready
-            </div>
         </div>
 
         <!-- Right: Board Panel -->
         <div class="w-1/2 bg-gray-950 flex flex-col items-center justify-center p-8 relative">
             <div id="board" class="w-[480px]"></div>
 
-            <div class="mt-6 flex gap-4 items-center">
-                <div class="flex gap-2">
-                    <button id="btnStart" class="btn-control" title="Start">⏮️</button>
-                    <button id="btnPrev" class="btn-control" title="Previous">◀️</button>
-                    <button id="btnNext" class="btn-control" title="Next">▶️</button>
-                    <button id="btnEnd" class="btn-control" title="End">⏭️</button>
+            <div class="mt-6 flex gap-4 items-center bg-gray-900 border border-gray-700 rounded-lg p-2 shadow-xl">
+                <div class="flex gap-1">
+                    <!-- Start -->
+                    <button id="btnStart"
+                        class="btn-control p-2 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition"
+                        title="First Move">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.41 16.59L13.82 12l4.59-4.59L17 6l-6 6 6 6zM6 6h2v12H6z" />
+                        </svg>
+                    </button>
+                    <!-- Prev -->
+                    <button id="btnPrev"
+                        class="btn-control p-2 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition"
+                        title="Previous">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                        </svg>
+                    </button>
+                    <!-- Next -->
+                    <button id="btnNext"
+                        class="btn-control p-2 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition"
+                        title="Next">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                        </svg>
+                    </button>
+                    <!-- End -->
+                    <button id="btnEnd"
+                        class="btn-control p-2 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition"
+                        title="Last Move">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5.59 7.41L10.18 12l-4.59 4.59L7 18l6-6-6-6zM16 6h2v12h-2z" />
+                        </svg>
+                    </button>
                 </div>
-                <div class="w-px h-8 bg-gray-700"></div>
-                <button id="btnFlip" class="btn-control" title="Flip Board">🔄</button>
+                <div class="w-px h-6 bg-gray-700"></div>
+                <!-- Flip -->
+                <button id="btnFlip"
+                    class="btn-control p-2 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition"
+                    title="Flip Board">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
             </div>
 
-            <div id="boardStatus" class="mt-4 text-sm font-mono text-blue-300">
-                Start Position
-            </div>
+
         </div>
 
     </main>
