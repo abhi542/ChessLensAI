@@ -142,6 +142,48 @@ def extract_moves(image_path: str) -> list[dict]:
     return [move.dict() for move in result.moves]
 
 
+# ── Analysis ──────────────────────────────────────────────────────────────────
+
+@traceable(run_type="chain", name="token_usage_analysis")
+def analyze_token_usage(image_path: str):
+    """
+    Perform separate text-only and image-based calls to simpler prompts
+    to isolate and verify token usage in LangSmith.
+    """
+    llm = create_llm()
+    
+    print("\n--- [Analysis] 1. Text-Only Request ---")
+    text_msg = [HumanMessage(content="Return the word 'Check'.")]
+    # We use a simple invoke here, not structured output, to keep it raw
+    response_text = llm.invoke(text_msg)
+    print(f"Response: {response_text.content}")
+    print("Check LangSmith for input tokens (Text).")
+
+    print("\n--- [Analysis] 2. Image + Text Request ---")
+    image_b64 = encode_image(image_path)
+    media_type = get_image_media_type(image_path)
+    
+    image_msg = [
+        HumanMessage(
+            content=[
+                {
+                    "type": "text",
+                    "text": "Just say 'Image received'.",
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{media_type};base64,{image_b64}",
+                    },
+                },
+            ]
+        )
+    ]
+    response_image = llm.invoke(image_msg)
+    print(f"Response: {response_image.content}")
+    print("Check LangSmith for input tokens (Image + Text).")
+
+
 # ── Validation ────────────────────────────────────────────────────────────────
 
 def validate_moves(raw_moves: list[dict]) -> tuple[list[dict], chess.Board]:
@@ -390,6 +432,7 @@ Examples:
     parser.add_argument("--white", "-w", default="?", help="White player name")
     parser.add_argument("--black", "-b", default="?", help="Black player name")
     parser.add_argument("--event", "-e", default="Chess Scoresheet OCR", help="Event name")
+    parser.add_argument("--analyze", action="store_true", help="Run token usage analysis instead of full extraction")
 
     args = parser.parse_args()
 
@@ -409,6 +452,10 @@ Examples:
     print("=" * 60)
     print("  Chess Scoresheet OCR → PGN")
     print("=" * 60)
+
+    if args.analyze:
+        analyze_token_usage(str(image_path))
+        return
 
     # Step 1: Extract all moves in one LLM call
     print("\n[1/3] Extracting moves from scoresheet...")
