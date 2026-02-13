@@ -19,13 +19,18 @@ $(document).ready(() => {
     // Initialize Chessboard
     board = Chessboard('board', {
         position: 'start',
-        pieceTheme: 'https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/website/img/chesspieces/wikipedia/{piece}.png'
+        // Use local Neo pieces
+        pieceTheme: 'pieces/neo/{piece}.png'
     });
 
     // Event Listeners
     $('#imageInput').on('change', handleImageUpload);
+    $('#pgnInput').on('change', handlePgnUpload);
     $('#exportBtn').on('click', handleExport);
-    
+
+    // Trigger validation when metadata changes
+    $('#whitePlayer, #blackPlayer, #eventName, #siteName, #gameDate, #roundNum, #gameResult').on('change', validateMoves);
+
     // Board Navigation
     $('#btnStart').on('click', () => goToMove(-1));
     $('#btnPrev').on('click', () => goToMove(gameState.currentMoveIndex - 1));
@@ -47,7 +52,7 @@ async function handleImageUpload(e) {
 
     // Show Loading
     $('#loadingModal').removeClass('hidden');
-    
+
     const formData = new FormData();
     formData.append("file", file);
 
@@ -56,18 +61,18 @@ async function handleImageUpload(e) {
             method: 'POST',
             body: formData
         });
-        
+
         if (!res.ok) throw new Error("Upload failed");
-        
+
         const data = await res.json();
-        
+
         // Initial raw moves
         gameState.moves = data.moves;
-        
+
         // Render and validate immediately
         renderGrid();
         await validateMoves();
-        
+
     } catch (err) {
         alert("Error uploading image: " + err.message);
     } finally {
@@ -79,12 +84,12 @@ async function validateMoves() {
     // Collect moves from the grid
     const movesToSend = [];
     const rows = $('.move-row');
-    
+
     rows.each((i, row) => {
         const num = $(row).find('.move-num').text().replace('.', '');
         const white = $(row).find('.move-white input').val().trim() || null;
         const black = $(row).find('.move-black input').val().trim() || null;
-        
+
         movesToSend.push({
             move_number: parseInt(num),
             white: white === "" ? null : white,
@@ -96,7 +101,11 @@ async function validateMoves() {
         moves: movesToSend,
         white_player: $('#whitePlayer').val(),
         black_player: $('#blackPlayer').val(),
-        event: $('#eventName').val()
+        event: $('#eventName').val(),
+        site: $('#siteName').val(),
+        date: $('#gameDate').val(),
+        round: $('#roundNum').val(),
+        result: $('#gameResult').val()
     };
 
     try {
@@ -107,46 +116,46 @@ async function validateMoves() {
         });
 
         const data = await res.json();
-        
+
         // Update State
         gameState.isValid = data.valid;
         gameState.pgn = data.pgn;
-        
+
         // Re-construct FEN list
         gameState.fens = [START_FEN];
         let lastValidFen = START_FEN;
-        
+
         // Update UI Validation status
         data.annotated_moves.forEach((row, i) => {
             const rowEl = $(`.move-row[data-idx="${i}"]`);
-            
+
             // White
             updateCellStatus(rowEl.find('.move-white'), row.white);
             if (row.white && row.white.valid) {
-                 gameState.fens.push(row.white.fen);
-                 lastValidFen = row.white.fen;
+                gameState.fens.push(row.white.fen);
+                lastValidFen = row.white.fen;
             } else if (row.white) {
-                 // Push last valid so navigation doesn't break, or push the error FEN if backend sent it (it sends PREVIOUS fen on error)
-                 gameState.fens.push(row.white.fen || lastValidFen);
+                // Push last valid so navigation doesn't break, or push the error FEN if backend sent it (it sends PREVIOUS fen on error)
+                gameState.fens.push(row.white.fen || lastValidFen);
             } else {
-                 gameState.fens.push(lastValidFen); // Null move?
+                gameState.fens.push(lastValidFen); // Null move?
             }
 
             // Black
             updateCellStatus(rowEl.find('.move-black'), row.black);
             if (row.black && row.black.valid) {
-                 gameState.fens.push(row.black.fen);
-                 lastValidFen = row.black.fen;
+                gameState.fens.push(row.black.fen);
+                lastValidFen = row.black.fen;
             } else if (row.black) {
-                 gameState.fens.push(row.black.fen || lastValidFen);
+                gameState.fens.push(row.black.fen || lastValidFen);
             } else {
-                 gameState.fens.push(lastValidFen);
+                gameState.fens.push(lastValidFen);
             }
         });
 
         // Toggle Export Button
         $('#exportBtn').prop('disabled', !gameState.isValid);
-        
+
         // If we just validated, update board to the "latest" relevant position? 
         // Or keep current? Let's stay current unless out of bounds.
         // Actually best UX: If invalid, jump to the first error? 
@@ -162,9 +171,9 @@ function updateCellStatus(cell, data) {
     const input = cell.find('input');
     cell.removeClass('bg-green-900/20 bg-red-900/30');
     input.removeClass('text-green-300 text-red-300 line-through');
-    
+
     if (!data) return; // Empty
-    
+
     if (data.valid) {
         cell.addClass('bg-green-900/20');
         input.addClass('text-green-300');
@@ -178,7 +187,7 @@ function updateCellStatus(cell, data) {
 function renderGrid() {
     const container = $('#movesGrid');
     container.empty();
-    
+
     gameState.moves.forEach((row, idx) => {
         const whiteSan = row.white ? (typeof row.white === 'string' ? row.white : row.white.san) : "";
         const blackSan = row.black ? (typeof row.black === 'string' ? row.black : row.black.san) : "";
@@ -211,11 +220,11 @@ function renderGrid() {
 function goToMove(index) {
     // index is in terms of half-moves (0 = after 1. White, 1 = after 1. Black)
     // -1 = Start Position
-    
+
     // Bounds check
     if (index < -1) index = -1;
     if (index >= gameState.fens.length - 1) index = gameState.fens.length - 2;
-    
+
     gameState.currentMoveIndex = index;
     updateBoardStatus();
 }
@@ -226,29 +235,29 @@ function updateBoardStatus() {
     // -1 -> fens[0] (Start)
     // 0 -> fens[1] (After 1. White)
     // 1 -> fens[2] (After 1. Black)
-    
+
     const fenIndex = gameState.currentMoveIndex + 1;
     if (fenIndex < 0 || fenIndex >= gameState.fens.length) return;
-    
+
     const fen = gameState.fens[fenIndex];
     if (fen) {
         board.position(fen);
     }
-    
+
     // Update active highlight in grid
     $('.move-input').removeClass('ring-2 ring-yellow-500 bg-gray-800 rounded');
-    
+
     if (gameState.currentMoveIndex >= 0) {
         // Calculate which cell corresponds to this half-move index
         // even index (0, 2...) -> White
         // odd  index (1, 3...) -> Black
         const rowIdx = Math.floor(gameState.currentMoveIndex / 2);
         const isWhite = (gameState.currentMoveIndex % 2) === 0;
-        
+
         const row = $(`.move-row[data-idx="${rowIdx}"]`);
         const cell = isWhite ? row.find('.move-white input') : row.find('.move-black input');
         cell.addClass('ring-2 ring-yellow-500 bg-gray-800 rounded');
-        
+
         // Scroll to view
         cell[0].scrollIntoView({ behavior: "smooth", block: "center" });
     }
@@ -261,13 +270,13 @@ function highlightMove(rowIdx, color) {
     // row 1, white -> 2
     let index = rowIdx * 2;
     if (color === 'black') index += 1;
-    
+
     goToMove(index);
 }
 
 function handleExport() {
     if (!gameState.pgn) return;
-    
+
     const blob = new Blob([gameState.pgn], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -277,4 +286,90 @@ function handleExport() {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+}
+
+async function handlePgnUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Show Loading
+    $('#loadingModal').removeClass('hidden');
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const res = await fetch(`${API_BASE}/api/upload-pgn`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!res.ok) throw new Error("Upload failed");
+
+        const data = await res.json();
+
+        // Update Metadata
+        $('#whitePlayer').val(data.white_player || "?");
+        $('#blackPlayer').val(data.black_player || "?");
+        $('#eventName').val(data.event || "?");
+        $('#siteName').val(data.site || "?");
+        $('#gameDate').val(data.date || "");
+        $('#roundNum').val(data.round || "?");
+        $('#gameResult').val(data.result || "*");
+
+        // Update Game State
+        gameState.isValid = data.valid;
+        gameState.pgn = data.pgn;
+
+        // Populate Grid (annotated_moves has same structure as validation output)
+        gameState.moves = data.annotated_moves.map(row => ({
+            move_number: row.move_number,
+            white: row.white && row.white.san ? row.white.san : null,
+            black: row.black && row.black.san ? row.black.san : null
+        }));
+
+        renderGrid();
+
+        // Re-construct FEN list logic (Shared with validation)
+        gameState.fens = [START_FEN];
+        let lastValidFen = START_FEN;
+
+        data.annotated_moves.forEach((row, i) => {
+            const rowEl = $(`.move-row[data-idx="${i}"]`);
+
+            // White
+            updateCellStatus(rowEl.find('.move-white'), row.white);
+            if (row.white && row.white.valid) {
+                gameState.fens.push(row.white.fen);
+                lastValidFen = row.white.fen;
+            } else if (row.white) {
+                gameState.fens.push(row.white.fen || lastValidFen);
+            } else {
+                gameState.fens.push(lastValidFen);
+            }
+
+            // Black
+            updateCellStatus(rowEl.find('.move-black'), row.black);
+            if (row.black && row.black.valid) {
+                gameState.fens.push(row.black.fen);
+                lastValidFen = row.black.fen;
+            } else if (row.black) {
+                gameState.fens.push(row.black.fen || lastValidFen);
+            } else {
+                gameState.fens.push(lastValidFen);
+            }
+        });
+
+        // Toggle Export Button
+        $('#exportBtn').prop('disabled', !gameState.isValid);
+
+        updateBoardStatus();
+
+    } catch (err) {
+        alert("Error uploading PGN: " + err.message);
+    } finally {
+        $('#loadingModal').addClass('hidden');
+        // Clear input so same file can be uploaded again if needed
+        $('#pgnInput').val('');
+    }
 }

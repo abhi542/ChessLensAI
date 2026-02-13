@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chess Sheet OCR</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Chess Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-    
+
     <!-- Custom Style -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="bg-gray-900 text-gray-100 font-sans h-screen flex flex-col overflow-hidden">
 
     <!-- Header -->
@@ -25,10 +27,17 @@
         </h1>
         <div class="flex gap-4 items-center">
             <input type="file" id="imageInput" accept="image/*" class="hidden">
-            <button onclick="document.getElementById('imageInput').click()" 
+            <button onclick="document.getElementById('imageInput').click()"
                 class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-semibold transition shadow-md">
                 📷 Upload Image
             </button>
+
+            <input type="file" id="pgnInput" accept=".pgn" class="hidden">
+            <button onclick="document.getElementById('pgnInput').click()"
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm font-semibold transition shadow-md">
+                📂 Upload PGN
+            </button>
+
             <button id="exportBtn" disabled
                 class="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-30 disabled:cursor-not-allowed rounded text-sm font-semibold transition shadow-md">
                 💾 Export PGN
@@ -38,27 +47,56 @@
 
     <!-- Main Content -->
     <main class="flex-1 flex overflow-hidden">
-        
+
         <!-- Left: Editor Panel -->
         <div class="w-1/2 flex flex-col border-r border-gray-700 bg-gray-900">
             <!-- Toolbar -->
-            <div class="p-3 bg-gray-800 border-b border-gray-700 flex gap-4 text-sm">
+            <div class="p-3 bg-gray-800 border-b border-gray-700 grid grid-cols-4 gap-2 text-sm">
                 <div class="flex flex-col">
                     <label class="text-xs text-gray-400">White</label>
-                    <input type="text" id="whitePlayer" value="?" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 w-32 focus:outline-none focus:border-blue-500">
+                    <input type="text" id="whitePlayer" value="?"
+                        class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 focus:outline-none focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs text-gray-400">Black</label>
-                    <input type="text" id="blackPlayer" value="?" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 w-32 focus:outline-none focus:border-blue-500">
+                    <input type="text" id="blackPlayer" value="?"
+                        class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 focus:outline-none focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs text-gray-400">Event</label>
-                    <input type="text" id="eventName" value="Chess OCR" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 w-32 focus:outline-none focus:border-blue-500">
+                    <input type="text" id="eventName" value="Chess OCR"
+                        class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs text-gray-400">Site</label>
+                    <input type="text" id="siteName" value="?"
+                        class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs text-gray-400">Date</label>
+                    <input type="text" id="gameDate" placeholder="YYYY.MM.DD"
+                        class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs text-gray-400">Round</label>
+                    <input type="text" id="roundNum" value="?"
+                        class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs text-gray-400">Result</label>
+                    <select id="gameResult"
+                        class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 focus:outline-none focus:border-blue-500">
+                        <option value="*">*</option>
+                        <option value="1-0">1-0</option>
+                        <option value="0-1">0-1</option>
+                        <option value="1/2-1/2">1/2-1/2</option>
+                    </select>
                 </div>
             </div>
 
             <!-- Spreadsheet Grid (Header) -->
-            <div class="grid grid-cols-[3rem_1fr_1fr] bg-gray-800 font-semibold text-gray-400 text-sm py-2 px-4 shadow-sm">
+            <div
+                class="grid grid-cols-[3rem_1fr_1fr] bg-gray-800 font-semibold text-gray-400 text-sm py-2 px-4 shadow-sm">
                 <div class="text-center">#</div>
                 <div class="text-center">White</div>
                 <div class="text-center">Black</div>
@@ -70,7 +108,7 @@
                     Upload an image to start extracting moves.
                 </div>
             </div>
-            
+
             <!-- Status Bar -->
             <div id="statusBar" class="p-2 bg-gray-800 border-t border-gray-700 text-xs text-center text-gray-400">
                 Ready
@@ -80,7 +118,7 @@
         <!-- Right: Board Panel -->
         <div class="w-1/2 bg-gray-950 flex flex-col items-center justify-center p-8 relative">
             <div id="board" class="w-[480px]"></div>
-            
+
             <div class="mt-6 flex gap-2">
                 <button id="btnStart" class="btn-control">|&lt;</button>
                 <button id="btnPrev" class="btn-control">&lt;</button>
@@ -106,4 +144,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

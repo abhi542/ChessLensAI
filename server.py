@@ -35,6 +35,10 @@ class ValidationRequest(BaseModel):
     white_player: str = "?"
     black_player: str = "?"
     event: str = "Chess OCR"
+    site: str = "?"
+    date: Optional[str] = None
+    round: str = "?"
+    result: str = "*"
 
 @app.get("/")
 def read_root():
@@ -98,7 +102,11 @@ async def validate(request: ValidationRequest):
             output_path, 
             white=request.white_player, 
             black=request.black_player, 
-            event=request.event
+            event=request.event,
+            site=request.site,
+            date_str=request.date,
+            round_str=request.round,
+            result_str=request.result
         )
         # Read it back (hacky but reuses existing logic)
         with open(output_path, "r") as f:
@@ -109,6 +117,102 @@ async def validate(request: ValidationRequest):
         "valid": is_valid,
         "pgn": pgn_string
     }
+
+@app.post("/api/upload-pgn")
+async def upload_pgn(file: UploadFile = File(...)):
+    """
+    Upload a PGN file, parse it, and return validated moves.
+    """
+    temp_dir = Path("temp_uploads")
+    temp_dir.mkdir(exist_ok=True)
+    file_path = temp_dir / file.filename
+
+    try:
+        # Save uploaded file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # Parse PGN
+        with open(file_path, "r") as f:
+            game = chess.pgn.read_game(f)
+
+        if game is None:
+            raise HTTPException(status_code=400, detail="Invalid PGN file")
+
+        # Extract headers
+        headers = game.headers
+        white_player = headers.get("White", "?")
+        black_player = headers.get("Black", "?")
+        event = headers.get("Event", "?")
+        site = headers.get("Site", "?")
+        date_str = headers.get("Date", "")
+        round_str = headers.get("Round", "?")
+        result = headers.get("Result", "*")
+
+        # Extract moves from mainline
+        moves_list = []
+        node = game
+        move_number = 0
+        
+        while node.variations:
+            next_node = node.variation(0)
+            move = next_node.move
+            san = node.board().san(move)
+            
+            # If it's White's turn (board matches node.board()), move_number increments
+            if node.board().turn == chess.WHITE:
+                move_number += 1
+                # Start new row
+                moves_list.append({
+                    "move_number": move_number,
+                    "white": san,
+                    "black": None # Will fill if next move exists
+                })
+            else:
+                # Black's move, append to last row
+                if moves_list:
+                    moves_list[-1]["black"] = san
+                else:
+                    # Should not happen in standard game starting with black, but handle edge case
+                    moves_list.append({
+                        "move_number": move_number, # Might be 0 or 1?
+                        "white": None,
+                        "black": san
+                    })
+            
+            node = next_node
+
+        # Clean nulls (ensure they are structurally compatible with our validator)
+        # Our validator expects dicts not strings for raw input? 
+        # No, extract_moves returns dicts with "white": "e4". 
+        # But validate_moves handles standard dicts.
+        
+        # Now validate them
+        annotated_moves, board = validate_moves(moves_list)
+        
+        # Cleanup
+        os.remove(file_path)
+
+        return {
+            "annotated_moves": annotated_moves,
+            "valid": True, # PGNs parsed by python-chess are generally valid unless illegal moves forced
+            "pgn": str(game), # Return original PGN text? Or re-generated?
+            "white_player": white_player,
+            "black_player": black_player,
+            "event": event,
+            "site": site,
+            "date": date_str,
+            "round": round_str,
+            "result": result
+        }
+
+    except Exception as e:
+        print(f"Error processing PGN: {e}")
+        # Cleanup if exists
+        if file_path.exists():
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

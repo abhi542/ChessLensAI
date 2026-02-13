@@ -27,8 +27,8 @@ A powerful tool that converts handwritten chess scoresheets into digital PGN fil
 
 ```bash
 # Clone the repository
-git clone https://github.com/niteesh577/chess-sheet-ocr.git
-cd chess-sheet-ocr
+git clone https://github.com/abhi542/ChessLensAI.git
+cd ChessLensAI
 
 # Create a virtual environment
 python3 -m venv venv

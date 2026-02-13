@@ -194,7 +194,7 @@ def validate_moves(raw_moves: list[dict]) -> tuple[list[dict], chess.Board]:
                 continue
 
             # Normalize common OCR glitches
-            san = raw_san.strip().replace("`", "")
+            san = raw_san.strip().replace("`", "").replace(" ", "")
             san = san.replace("0-0-0", "O-O-O").replace("0-0", "O-O")
 
             current_fen = board.fen()
@@ -242,6 +242,10 @@ def build_pgn(
     white: str = "?",
     black: str = "?",
     event: str = "Chess Scoresheet OCR",
+    site: str = "?",
+    date_str: str = None,
+    round_str: str = "?",
+    result_str: str = "*"
 ) -> str:
     """
     Build a PGN from validated moves. Invalid moves are added as comments.
@@ -251,14 +255,16 @@ def build_pgn(
 
     # ── Headers ──
     game.headers["Event"] = event
-    game.headers["Site"] = "?"
-    game.headers["Date"] = date.today().strftime("%Y.%m.%d")
-    game.headers["Round"] = "?"
+    game.headers["Site"] = site
+    game.headers["Date"] = date_str if date_str else date.today().strftime("%Y.%m.%d")
+    game.headers["Round"] = round_str
     game.headers["White"] = white
     game.headers["Black"] = black
 
     # Determine result
-    if board.is_checkmate():
+    if result_str != "*" and result_str != "?":
+        result = result_str
+    elif board.is_checkmate():
         result = "0-1" if board.turn == chess.WHITE else "1-0"
     elif board.is_stalemate() or board.is_insufficient_material():
         result = "1/2-1/2"
