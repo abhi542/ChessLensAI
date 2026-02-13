@@ -1,0 +1,51 @@
+/* Dark mode refined scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #4b5563; 
+  border-radius: 4px; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280; 
+}
+
+/* Move Input Styling */
+.move-input {
+    @apply bg-transparent border-0 text-center w-full focus:ring-0 focus:outline-none text-gray-200 font-mono tracking-wide;
+    transition: all 0.2s;
+}
+
+.move-input:focus {
+    @apply ring-2 ring-blue-500 bg-gray-800 rounded;
+}
+
+.move-cell {
+    @apply border border-gray-700 relative;
+}
+
+/* Validation States */
+.cell-valid {
+    @apply bg-green-900/20 text-green-300;
+}
+.cell-invalid {
+    @apply bg-red-900/30 text-red-300 border-red-500/50;
+}
+.cell-active {
+    @apply ring-2 ring-yellow-500 z-10;
+}
+
+/* Board Responsiveness */
+#board {
+    width: 100%;
+    max-width: 600px; /* Limit board size */
+    aspect-ratio: 1 / 1;
+}
+
+/* Button Controls */
+.btn-control {
+    @apply px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 font-bold transition shadow;
+}

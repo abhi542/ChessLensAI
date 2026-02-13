@@ -1,0 +1,12 @@
+langchain
+langchain-community
+langchain-core
+langchain-groq
+python-dotenv
+chess
+langsmith
+fastapi
+uvicorn
+python-multipart
+uvicorn[standard]
+
