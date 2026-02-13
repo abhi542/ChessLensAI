@@ -33,65 +33,36 @@ SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 OUTPUT_DIR = Path("output")
 
 
+from pydantic import BaseModel, Field
+# ── Pydantic Models ──────────────────────────────────────────────────────────
+
+class ChessMove(BaseModel):
+    move_number: int = Field(..., description="The move number (e.g., 1, 2, ...)")
+    white: str | None = Field(None, description="White's move in SAN (Standard Algebraic Notation), or null if empty.")
+    black: str | None = Field(None, description="Black's move in SAN, or null if empty.")
+
+class Scoresheet(BaseModel):
+    moves: list[ChessMove] = Field(..., description="List of all chess moves found on the scoresheet.")
+
+
 # ── Extraction Prompt ─────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """\
 You are a deterministic chess notation recognition engine.
-
-You are not a chatbot. You are not an assistant.
-You are an OCR-to-SAN conversion engine.
-
-Your task is to read ALL handwritten chess moves from the scoresheet image \
-and return them as a JSON array.
+Your task is to read ALL handwritten chess moves from the scoresheet image.
 
 CRITICAL — Scoresheet layout:
 Chess scoresheets almost always have a TWO-COLUMN layout:
   - LEFT column:  move numbers 1–30 with White and Black columns
   - RIGHT column: move numbers 31–60 with White and Black columns
 You MUST read BOTH the left AND right columns.
-Read the LEFT column first (moves 1–30), then the RIGHT column (moves 31–60).
-Do NOT stop at move 30. Continue reading the right-hand column until there \
-are no more moves written on the sheet.
-If a row on the right column is empty (no move written), stop there.
+Read the LEFT column first, then the RIGHT column.
 
 Strict rules:
-- Every move must be in Standard Algebraic Notation (SAN).
-- Do NOT include move numbers inside the SAN string.
-- Do NOT include commentary, explanations, or extra punctuation.
-- Do NOT wrap output in markdown fences.
-- Never output natural language.
-- If a cell is empty or completely illegible, use null.
-
-SAN format reference:
-  Pawn move: e4
-  Capture: exd5
-  Piece move: Nf3
-  Disambiguation: Nbd2 or R1e2
-  Check: Qh5+
-  Checkmate: Qh5#
-  Promotion: e8=Q
-  Castle: O-O or O-O-O
-
-If handwriting is unclear:
-  Output your single best SAN guess.
-  Prefer correct SAN notation (O-O, not 0-0).
-
-Return ONLY a JSON array of objects with this schema:
-[
-  {"move_number": 1, "white": "e4",  "black": "e5"},
-  {"move_number": 2, "white": "Nf3", "black": "Nc6"},
-  {"move_number": 31, "white": "Qc5", "black": "Be6"},
-  {"move_number": 32, "white": "Qxe5", "black": "Bxb3"}
-]
-
-Rules for the JSON:
-- "move_number": integer (must go from 1 up to the LAST visible move, \
-including moves in the right column beyond 30)
-- "white": SAN string or null
-- "black": SAN string or null
-- Include every row from move 1 to the last visible move on the ENTIRE sheet.
-- Do NOT stop at move 30 if there are more moves in the right column.
-- Do NOT invent moves that are not on the sheet.
-- Return ONLY the JSON array. Nothing else."""
+- Extract ONLY standard algebraic notation (SAN).
+- Do not include commentary.
+- If a cell is empty or illegible, use null.
+- Correct common OCR errors if strictly clear (e.g. '0-0' -> 'O-O').
+"""
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -130,7 +101,9 @@ def extract_moves(image_path: str) -> list[dict]:
     """
     image_b64 = encode_image(image_path)
     media_type = get_image_media_type(image_path)
-    llm = create_llm()
+    
+    # Configure LLM for structured output
+    llm = create_llm().with_structured_output(Scoresheet)
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
@@ -138,7 +111,7 @@ def extract_moves(image_path: str) -> list[dict]:
             content=[
                 {
                     "type": "text",
-                    "text": "Extract all chess moves from this scoresheet image.",
+                    "text": "Extract all chess moves from this scoresheet.",
                 },
                 {
                     "type": "image_url",
@@ -150,25 +123,15 @@ def extract_moves(image_path: str) -> list[dict]:
         ),
     ]
 
-    response = llm.invoke(messages)
-    raw = response.content.strip()
-
-    # Strip markdown fences if the model wraps the output
-    raw = re.sub(r"^```(?:json)?\s*", "", raw)
-    raw = re.sub(r"\s*```$", "", raw)
-
     try:
-        moves = json.loads(raw)
-    except json.JSONDecodeError as e:
-        print(f"[ERROR] Failed to parse LLM JSON: {e}")
-        print(f"[DEBUG] Raw model output:\n{raw}")
+        # returns a Scoresheet object
+        result: Scoresheet = llm.invoke(messages)
+    except Exception as e:
+        print(f"[ERROR] LLM Extraction failed: {e}")
         sys.exit(1)
 
-    if not isinstance(moves, list):
-        print("[ERROR] LLM did not return a JSON array.")
-        sys.exit(1)
-
-    return moves
+    # Convert back to list of dicts for compatibility with existing code
+    return [move.dict() for move in result.moves]
 
 
 # ── Validation ────────────────────────────────────────────────────────────────

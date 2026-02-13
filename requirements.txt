@@ -9,4 +9,5 @@ fastapi
 uvicorn
 python-multipart
 uvicorn[standard]
-
+pydantic
+langsmith

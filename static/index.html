@@ -12,6 +12,7 @@
     <!-- Chess Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 
     <!-- Custom Style -->
@@ -28,19 +29,19 @@
         <div class="flex gap-4 items-center">
             <input type="file" id="imageInput" accept="image/*" class="hidden">
             <button onclick="document.getElementById('imageInput').click()"
-                class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-semibold transition shadow-md">
-                📷 Upload Image
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-semibold transition shadow-md flex items-center gap-2">
+                📷 <span>Upload Image</span>
             </button>
 
             <input type="file" id="pgnInput" accept=".pgn" class="hidden">
             <button onclick="document.getElementById('pgnInput').click()"
-                class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm font-semibold transition shadow-md">
-                📂 Upload PGN
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm font-semibold transition shadow-md flex items-center gap-2">
+                📂 <span>Upload PGN</span>
             </button>
 
             <button id="exportBtn" disabled
-                class="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-30 disabled:cursor-not-allowed rounded text-sm font-semibold transition shadow-md">
-                💾 Export PGN
+                class="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-30 disabled:cursor-not-allowed rounded text-sm font-semibold transition shadow-md flex items-center gap-2">
+                💾 <span>Export PGN</span>
             </button>
         </div>
     </header>
@@ -119,11 +120,15 @@
         <div class="w-1/2 bg-gray-950 flex flex-col items-center justify-center p-8 relative">
             <div id="board" class="w-[480px]"></div>
 
-            <div class="mt-6 flex gap-2">
-                <button id="btnStart" class="btn-control">|&lt;</button>
-                <button id="btnPrev" class="btn-control">&lt;</button>
-                <button id="btnNext" class="btn-control">&gt;</button>
-                <button id="btnEnd" class="btn-control">&gt;|</button>
+            <div class="mt-6 flex gap-4 items-center">
+                <div class="flex gap-2">
+                    <button id="btnStart" class="btn-control" title="Start">⏮️</button>
+                    <button id="btnPrev" class="btn-control" title="Previous">◀️</button>
+                    <button id="btnNext" class="btn-control" title="Next">▶️</button>
+                    <button id="btnEnd" class="btn-control" title="End">⏭️</button>
+                </div>
+                <div class="w-px h-8 bg-gray-700"></div>
+                <button id="btnFlip" class="btn-control" title="Flip Board">🔄</button>
             </div>
 
             <div id="boardStatus" class="mt-4 text-sm font-mono text-blue-300">
